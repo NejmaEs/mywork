@@ -1,0 +1,324 @@
+---
+title: 'Technical Report'
+author: "Nejma Ahmed"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+Fisr step of this  tecnichal report  is reading al the packages that may be used for analysis.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(mosaicData) #new!
+library(babynames) #new!
+library(lubridate) #new!
+library(ggthemes) #new!
+library(tidyverse)
+library(knitr) 
+library(ggplot2)
+library(broom)
+library(ggpubr)
+#new!
+```
+ 
+
+## Background and details about the dataset
+
+
+For this Data project I am using the NHANES (National Health and Nutrition Examination Survey) data set,  which  we used previously for  class activities 
+
+**Brief discription og how the data was collected:**
+
+The National Health and Nutrition Examination Survey (NHANES) program consists of a series of nationally representative cross-sectional health examination surveys conducted in mobile examination units or clinics. Dietary intake statistics, biochemical testing, physical measurements, and clinical exams for signs of nutritional deficiencies are all used to collect data on markers of the nutritional and health condition of Americans.(source for the info : (https://www.healthypeople.gov/2020/data-source/national-health-and-nutrition-examination-survey))
+
+
+There are 10000 observations and there are 76 variables in  this data set
+
+
+```{r}
+ nhanes<-read.csv("/Users/nejmaahmed/Downloads/NHANES.csv", na.strings = ".")
+
+```
+
+
+# Research Questions 
+
+*  How can drug use be correlated with income status and is more drug use in low-income communities or more drug use high-income communities?*
+
+
+* how can drug or alcohol use at a young age take effect on economic status?
+
+
+* Does drug use as a young adult has a greater impact than as an adult?
+
+
+* what are other factors that contribute to drug use?.
+
+The goal is get a possible answer for the questions above and the main finding that i am looking for are the  drug use and income correlation.
+
+
+# Variables 
+
+* Education is categrical
+
+
+* HHIncomeMid is a quantative 
+
+* Poverty is quantative
+
+* AlcoholDay is a quantative 
+
+* AlcoholYear is quantative
+  
+* SmokeNow  is categorical
+
+* Race1 is categorical
+
+# Data clenaning steps
+
+The goal of this inquiry is to focus on only a small portion of the data set, and I want to construct a selection of it. 
+The subset will only include the variables that I will display and analyze to answer the questions above.
+
+```{r}
+nhanes2 <- nhanes %>% 
+  select( ID, SurveyYr, Age, Gender, Race1,  Education, HHIncome, HHIncomeMid, Poverty, Work, Alcohol12PlusYr, AlcoholDay, AlcoholYear, SmokeNow, SmokeAge,  AgeFirstMarij, RegularMarij, AgeRegMarij, HardDrugs ) 
+  
+  
+nhanes2<-nhanes2 %>% 
+  filter(SurveyYr==max(SurveyYr))
+
+
+```
+
+The wrangling involves constructing a subset of the original data, Nhanes, and a smaller version of the data with only the variables I will be needing for my project.
+
+I conducted some data wrangling and filtering of the data set in the code chunk above to match the analysis that I will be doing throughout this project. To demonstrate what is happening on within the code above, I produced a subset of the original data that only contains the variable I will be utilizing and only includes the years 2011-2012. ... the original data set covered four years, from 2009 to 2012, but I'm only interested in the last two.
+
+# Data exploration and modeling
+```{r}
+          
+table(nhanes$Education) 
+table(nhanes2$Race1,nhanes2$Work)
+table(nhanes2$Alcohol12PlusYr, nhanes2$Race1)
+```
+
+In the code chunk above I created a table for the categorical variables.
+
+```{r}
+library(psych)
+nhanessub <- nhanes2%>% 
+  select(Age, HHIncomeMid, Poverty, AlcoholDay, AlcoholYear,  SmokeAge,  AgeFirstMarij,  AgeRegMarij)
+summary(nhanessub)
+
+options(scipen = 999)
+
+round(describe(nhanessub),3) %>% 
+  knitr::kable(caption = "**Summery Statictics of all  quantative variables**"
+)
+
+  
+
+
+```
+
+In the code chunk above, I chose all quantative variables and produced a subset of the data that contains all of the variables that I would be using for the project. I performed a simple linear regression and a summary statistics or descriptive analysis on the code component. I also used the knitr program to make the summary statistics table more visually appealing.
+
+
+```{r}
+nhanes2 %>% drop_na(Work, HHIncomeMid, AlcoholYear, Alcohol12PlusYr, SmokeAge, AgeRegMarij, Education, Gender, HardDrugs) %>% 
+       
+    group_by(Education) %>%
+      count(HardDrugs, Education) %>%
+        mutate(pct = n/sum(n)) %>%
+          ggplot(aes(y= Education, label = scales::percent(pct)))+
+          geom_col(aes(x=pct, fill=as.factor(HardDrugs)))+
+          scale_fill_manual(values =  c("orange", "darkcyan") )+
+          scale_y_discrete()+
+        xlab("Percent of Participants") +
+        ylab("Education Level completed")+
+          geom_text(aes(x = (pct),label = scales::percent((pct))), 
+            position = position_fill(vjust = 0),size= 6, color="black",
+            stat = 'identity') + 
+  scale_x_continuous(labels=scales::percent)+ 
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(), 
+        text=element_text(size=8,  family="serif"), 
+        axis.text.y = element_text(color="black"),
+        legend.position = "bottom",
+        legend.text=element_text(size=8)
+        ) +
+  ggtitle(" Percent Of Drug Use vs. Education Level Completed ") +
+  coord_flip()+
+  theme(plot.title = element_text(size = 15)) 
+
+```
+
+
+For this graph, I did some data wrangling by grouping by Education and then counting the variables Eduction and hard drugs. so that I may make a new percentage variable .  After establishing a % variable, I utilized it in the graph to highlight the percentage of participants while also making the graph easier to read. I also used as.factor for Hard drugs variable to modify it so I could compute and label the percentage correctly. the geom . text.function was also used. So that the percentage label on the bars or graph is represented on the chart. HoweverIt is partially on it, but it is not in the correct graph position. I attempted to repair but was unable. 
+
+The graph above consists of the percent drug used and education level completes. whare the color of the graph represents whether or not the participants have consumed Hard Drugs (i.g. cocaine) and on the x-axis, we have the education level completed. to further explain the chart above, it shows that for people who have completed 8th grade it looks like that 58.3% of them consume Hard drugs, for those who 9 - 11th grade it looks like 63.2% of them have consumed Hard drugs, those who completed high school 56.6% of having done drugs. for those who completed some colleges degree, 68.8% of them have consumed drugs which are highest of all compared to others, and lastly for college grads surprisingly there 40.4% of that consumed. overall this graph tells us that there is more drug use at each level of education.
+
+
+
+
+
+
+```{r}
+p1<- nhanes2 %>% 
+    drop_na(HHIncomeMid, AlcoholYear, Alcohol12PlusYr, SmokeAge, AgeRegMarij, Education, Gender, HardDrugs) %>% 
+      ggplot(aes(x= HHIncomeMid , y = SmokeAge ))+
+      geom_boxplot(aes(color = Education, fill = Education, text = HardDrugs))+
+      labs(x= "Median House hold income", y = "Age started smoking")+
+      theme(legend.position = "right")+
+      #geom_smooth(color = "red", se = FALSE)+
+    ggtitle("Median House Hold Income vs Age started smoking by Education")
+  
+p1
+```
+
+For this graph I did not do any data  wrangling for that graph except drop.na which deletes any na data.
+
+
+The boxplot above shows Median House Hold Income and  Age started smoking by Education. where the color represents Eduaction and in the y-axis we have the age first started smoking and in the x-axis we have the median house hold income. looking at the graph it looking the relationship between the variable are concise enough to help us  understand that starting to smoke at a young age has a limmited  affect  but overall eduaction  is  the key factor in this case.
+
+
+```{r}
+
+
+p2 <- nhanes2 %>% 
+    drop_na(Race1,HHIncomeMid, AlcoholYear, Alcohol12PlusYr, SmokeAge, AgeRegMarij, Education, Gender, HardDrugs, Poverty) %>% 
+      ggplot(aes(x= HHIncomeMid , y = Poverty ))+
+      geom_point(color = 'brown')+ 
+      labs(x= "Median House hold income", y = "Poverty Rate") +
+      geom_smooth(color = "black", se = TRUE)+
+      ggtitle("Median House Hold Income vs Poverty Rate by use hard drugs")+
+    coord_flip()+
+  facet_wrap(vars( HardDrugs))
+  theme(legend.position = "left")
+p2
+
+
+```
+
+I did not do wrangling for this graph.
+
+This graph shows the poverty rate and income by drug use wherein on the y-axis we have median household income and on the x-axis we have poverty rate which is 0-5, 5 being the lowest rate and 0 being the highest. when looking at the graph of those who had done drugs and those who have not it looks like there is no significance difference between the two.  
+
+
+
+
+```{r}
+nhanes2 %>% 
+  drop_na(HHIncomeMid, Education, Alcohol12PlusYr, AlcoholYear, Gender, Race1) %>% 
+    ggplot(aes( x = (AlcoholYear ),  y = HHIncomeMid  , fill = Education, na.rm=TRUE )) +
+    geom_boxplot() +
+    labs(x ="Count of Alcohol consumed for a year", y="Median House Hold Income")+
+   ggtitle("Median House Hold Income vs. Education by Alcohol use for each Race")+
+  facet_wrap(vars(Race1))+
+  coord_cartesian()+
+  theme(legend.position = "top")+
+  theme_minimal()
+```
+
+For the code  chunk above I did not do any wrangling,  I only created a boxplot chart  to illustarte the correlation between median house income and alcohol usage yearly and Eduaction.
+
+
+This boxplot illustrates income, Education, and Alcohol consumption facet wraped by race. The color represents Education we have the count of alcohol consumption for a year on the x-axis and we have income on the y-axis. we have white, back, hispanic, maxican, and another category which those who are none og the races mentioned above.
+To  further explain this graph consists of multiple graphs where each graph is for one race.  Looking into the graph for the black race it looks like those who have graduated from college have lowest alcohol usage where every other race is about 200 or more. 
+
+
+
+
+```{r}
+nhanes2 %>% 
+  drop_na(Work,HHIncomeMid, Education, Alcohol12PlusYr, AlcoholYear, Gender, Race1, SmokeAge, AgeRegMarij)%>%
+   ggplot(aes(x = SmokeAge) ) +
+    geom_density( fill = "coral" ) +
+     ylab("proportions of particpants" ) +
+    xlab("age started to smoke") +
+  ggtitle(" Age First Started smoking faceted by  Race ")+
+          theme_minimal()+
+
+    theme(legend.position = "bottom") +facet_wrap(vars(Race1))
+
+
+```
+
+This graph was very simple to make and the results were decent enough to understand how age of smoking distributed by race. The reason why I created this graph was to see relations between the age started smoking and how it differs from race to race.
+
+The graph above displays the proportions of the age  started smoking by race. Looking at this graph, it  presents that for each race  the peak is at 13-20, which tells that majority of the people start smoking around the time when they are teens and young adults.  
+
+# Multiple Linear regregrion
+
+```{r}
+  
+multi_reg <- lm( HHIncomeMid ~ SmokeAge + AgeFirstMarij + AlcoholDay + AlcoholYear, data = nhanes2)
+summary(multi_reg)
+
+
+```
+
+The code chunk illustrates a multiple linear regression. the reason why I want to run a regresion is  to expand my reasearch in attempt to getting an answer for the research questions.
+
+In the multiple linear regrstion we want to investicage the relationship the dependant variable has with the independ variables.in this case HHIncomeMid was the dependent variable where the other variables were the independant.
+
+leading Coefficients:
+
+*  SmokeAge       1004.49 which indicates a positive relationship 
+
+* AlcoholYear      74.45 also indicated a positive relationship
+
+
+
+* p-value: 0.00000000000005553, not significan enough
+
+* Adjusted R-squared:  0.1008 or 10.8% which tells us that that it is not significant. 
+ 
+
+# Conclusion / Findings. 
+
+* Average Median Household Income is 57k.
+
+* Average Alcohol consumption per year 74 times.
+ 
+* The average smoking age is 17 years old.
+
+* The average age people start smoking marijuana is also 17 years old.
+
+
+**Graphs**
+
+For the first graph, the overall theme is that drug use increases with education level, with the exception of college graduates, who had just 40% drug consumption. The second graph shows that smoking at a young age has a limited influence, but that education is the most important factor in determining income. The third chart demonstrates that poverty levels are similar for persons who have used drugs and those who have not used drugs, and the fourth shows that alcohol consumption varies by race, with black people consuming the least amount of alcohol among college graduates. the last graphThere is just no difference between the ages people start smoking for each race .
+
+The multiple regrestion not show any significant values or coefficients that indicate a relationship between drugs.
+
+
+
+# Final Results Drawn From The Analysis
+
+
+Drug and alcohol use appear to be similar in high and low income communities, there is no distinction between them. 
+
+The use of drugs or alcohol does have a minimal impact on income. 
+
+The majority of people began consuming drugs while they were underage, and there is no indication that it has an impact on their earnings because the graphs have shown the income generated p=for persons who drugs is around the same as those who have not.
+
+
+
+
+*Sugestions*
+
+I was not able to answer the last question so I would sugest to consider other variable's that might help and since I used a subset of the data I would consider looking into the whole data and maybe also iner joining with a differen data set. 
+
+
+
